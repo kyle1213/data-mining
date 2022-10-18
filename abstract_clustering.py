@@ -9,16 +9,13 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 import numpy as np
 from sklearn.metrics import silhouette_samples, silhouette_score
-from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from sklearn.neighbors import NearestNeighbors
-from numpy.linalg import svd
-from pyspark import SparkConf, SparkContext
-from functools import reduce
+import re
+from sklearn.feature_extraction import text
 
-#nltk.download('punkt')
-#nltk.download('averaged_perceptron_tagger')
+
 CAT_PATTERN = r'([a-z_\s]+)/.*'
 DOC_PATTERN = r'(?!\.)[a-z_\s]+/[0-9]+\.html'
 TAGS = []
@@ -119,6 +116,11 @@ print("title_paragraphs len: ", len(title_paragraphs))
 abstract_paragraphs = list(paras(abstract_htmls, abstract_TAGS))
 print("abstract_paragraphs len: ", len(abstract_paragraphs))
 
+temp_abstract_paragraphs = []
+for para in abstract_paragraphs:
+    temp_abstract_paragraphs.append(re.sub(r"[^a-zA-Z\s]", "", para))  # 영문자 + 공백만 남기기)
+abstract_paragraphs = temp_abstract_paragraphs
+
 title_categories = title_corpus.categories()
 abstract_categories = abstract_corpus.categories()
 
@@ -159,6 +161,8 @@ def describe(paragraphs, fileids, categories):
 print("descreibe title_paragraphs", describe(title_paragraphs, title_fileids, title_categories))
 print("descreibe abstract_paragraphs", describe(abstract_paragraphs, abstract_fileids, abstract_categories))
 
+
+
 papers_list = []
 for key, value in zip(title_paragraphs, abstract_paragraphs):
     temp_dict = dict()
@@ -168,30 +172,30 @@ for key, value in zip(title_paragraphs, abstract_paragraphs):
 
 
 def sklearn_tfidf_vectorize(corpus):
-    tfidf = TfidfVectorizer()
+    my_stop_words = text.ENGLISH_STOP_WORDS
+    tfidf = TfidfVectorizer(stop_words=my_stop_words)
     return tfidf.fit_transform(corpus)
 
 
 def clustering(df, tf_idf_df):
-    eps = [0.05, 0.12, 0.2, 1.0]
-    #eps = [0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 10]
+    eps = [0.9]
     min_samples = [4]
 
-    neighbors = NearestNeighbors(n_neighbors=5)
+    neighbors = NearestNeighbors(n_neighbors=4)
     neighbors_fit = neighbors.fit(tf_idf_df)
     distances, indices = neighbors_fit.kneighbors(tf_idf_df)
     distances = np.sort(distances, axis=0)
-    distances = np.sum(distances, axis=1)/4
+    distances = distances[:,1]
     plt.plot(distances)
     plt.show()
 
-    fig, axs = plt.subplots(figsize=(8 * 1, 8), nrows=1, ncols=len(eps)*len(min_samples))
+    fig, axs = plt.subplots(figsize=(8 * 1, 8), nrows=1, ncols=len(eps)*len(min_samples)) #change col
 
     ind = 0
     for e in eps:
         for s in min_samples:
             print("e,s: ", e, s,'\n')
-            model = DBSCAN(eps=e, min_samples=s, metric='cosine')
+            model = DBSCAN(eps=e, min_samples=s)
             clusters = model.fit(tf_idf_df)
             n_cluster = len(set(clusters.labels_))
             if n_cluster <= 2:
@@ -209,8 +213,8 @@ def clustering(df, tf_idf_df):
 
             y_lower = 10
             axs[ind].set_title(
-                'N_Cluster : ' + str(n_cluster) + '\n' + 'Sil_Score :' + str(round(silhouette_s, 3)))
-            axs[ind].set_xlabel("sil values")
+                'Number of Cluster : ' + str(n_cluster) + '\n' + 'Silhouette Score :' + str(round(silhouette_s, 3)))
+            axs[ind].set_xlabel("The silhouette coefficient values")
             axs[ind].set_ylabel("Cluster label")
             axs[ind].set_xlim([-0.1, 1])
             axs[ind].set_ylim([0, len(tf_idf_df) + (n_cluster + 1) * 10])
@@ -218,7 +222,7 @@ def clustering(df, tf_idf_df):
             axs[ind].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 
             # 클러스터링 갯수별로 fill_betweenx( )형태의 막대 그래프 표현.
-            for i in range(-1, n_cluster-1):
+            for i in range(0, n_cluster-1):
                 ith_cluster_sil_values = score_samples[result == i]
                 ith_cluster_sil_values.sort()
 
@@ -233,7 +237,6 @@ def clustering(df, tf_idf_df):
 
             axs[ind].axvline(x=silhouette_s, color="red", linestyle="--")
             ind += 1
-
     plt.show()
 
 
@@ -241,28 +244,11 @@ df = pd.DataFrame(papers_list, columns={'title', 'abstract'})
 tf_idf = sklearn_tfidf_vectorize(abstract_paragraphs).todense()
 tf_idf_df = pd.DataFrame(tf_idf)
 
-#conf = SparkConf()
-#sc = SparkContext(conf=conf)
-#sc_tf_idf = sc.parallelize(tf_idf)
-#u, s, vt = sc_tf_idf.map(lambda: x, svd(x))
-
-#u, s, vt = svd(tf_idf)
-#s = np.diag(s)
-#s_list = []
-#for i in range(0, 1000):
-#    s_list.append(s[i][i]/np.trace(s))
-#
-#for i in range(1, 1000):
-#    print(1-reduce(lambda a, b: a + b, s_list[:i]))
-
-pca = PCA(n_components=18) # 주성분을 몇개로 할지 결정
-principalComponents = pca.fit_transform(tf_idf_df)
-principalDf = pd.DataFrame(data=principalComponents)
-
 print(df[:3])
 print(tf_idf_df[:3])
 
-clustering(df, principalDf)
+clustering(df, tf_idf)
+
 """
 
         print(df.head())
