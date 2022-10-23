@@ -86,11 +86,12 @@ principalDf = pd.DataFrame(data=principalComponents)
 print("principalDf.shape : ", principalDf.shape)
 
 #eps choose
-neighbors = NearestNeighbors(n_neighbors=10)
+n_neighbors = 2
+neighbors = NearestNeighbors(n_neighbors=n_neighbors)
 neighbors_fit = neighbors.fit(principalDf)
 distances, indices = neighbors_fit.kneighbors(principalDf)
 distances = np.sort(distances, axis=0)
-distances = np.sum(distances, axis=1)/10
+distances = np.sum(distances, axis=1)/(n_neighbors-1)
 print(np.shape(distances))
 plt.plot(distances)
 plt.show()
