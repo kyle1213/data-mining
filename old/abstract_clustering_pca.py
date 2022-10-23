@@ -12,9 +12,10 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from sklearn.neighbors import NearestNeighbors
-import re
+from functools import reduce
 from sklearn.feature_extraction import text
 from sklearn.decomposition import PCA
+from numpy.linalg import svd
 
 
 CAT_PATTERN = r'([a-z_\s]+)/.*'
@@ -180,10 +181,17 @@ def sklearn_tfidf_vectorize(corpus):
     return tfidf.fit_transform(corpus)
 
 
-def clustering(df, tf_idf_df, tf_idf, eps, min_samples):
+df = pd.DataFrame(papers_list, columns={'title', 'abstract'})
+tf_idf = sklearn_tfidf_vectorize(abstract_paragraphs).todense()
+tf_idf_df = pd.DataFrame(tf_idf)
+df.to_csv('df.csv')
+tf_idf_df.to_csv('tf_idf_df.csv')
+
+
+def clustering(df_, tf_idf_df_, tf_idf_, eps, min_samples):
     neighbors = NearestNeighbors(n_neighbors=4)
-    neighbors_fit = neighbors.fit(tf_idf_df)
-    distances, indices = neighbors_fit.kneighbors(tf_idf_df)
+    neighbors_fit = neighbors.fit(tf_idf_df_)
+    distances, indices = neighbors_fit.kneighbors(tf_idf_df_)
     distances = np.sort(distances, axis=0)
     distances = distances[:,1]
     plt.plot(distances)
@@ -200,18 +208,18 @@ def clustering(df, tf_idf_df, tf_idf, eps, min_samples):
     for i in range(len(eps)):
         print("e,s: ", eps[i], min_samples[i],'\n')
         model = DBSCAN(eps=eps[i], min_samples=min_samples[i])
-        clusters = model.fit(tf_idf_df)
+        clusters = model.fit(tf_idf_df_)
         n_cluster = len(set(clusters.labels_))
         if n_cluster <= 2:
             print("cluster num of", eps[i], min_samples[i], "is 2 or less\n")
             continue
-        result.append(model.fit_predict(tf_idf_df))
-        df['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])] = result[ind]
-        score_samples = silhouette_samples(tf_idf, df['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])])
-        df['silhouette_coeff' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])] = score_samples
-        silhouette_s = silhouette_score(tf_idf, df['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])])
+        result.append(model.fit_predict(tf_idf_df_))
+        df_['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])] = result[ind]
+        score_samples = silhouette_samples(tf_idf_, df_['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])])
+        df_['silhouette_coeff' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])] = score_samples
+        silhouette_s = silhouette_score(tf_idf_, df_['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])])
         temp = 0
-        for p in df.groupby('cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i]))['silhouette_coeff' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])].mean():
+        for p in df_.groupby('cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i]))['silhouette_coeff' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])].mean():
             temp += p
         average_score = temp/len(set(clusters.labels_))
 
@@ -221,7 +229,7 @@ def clustering(df, tf_idf_df, tf_idf, eps, min_samples):
         axs[i].set_xlabel("The silhouette coefficient values")
         axs[i].set_ylabel("Cluster label")
         axs[i].set_xlim([-0.1, 1])
-        axs[i].set_ylim([0, len(tf_idf_df) + (n_cluster + 1) * 10])
+        axs[i].set_ylim([0, len(tf_idf_df_) + (n_cluster + 1) * 10])
         axs[i].set_yticks([])  # Clear the yaxis labels / ticks
         axs[i].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 
@@ -246,18 +254,37 @@ def clustering(df, tf_idf_df, tf_idf, eps, min_samples):
     return result
 
 
-dff = pd.DataFrame(papers_list, columns={'title', 'abstract'})
-tf_idff = sklearn_tfidf_vectorize(abstract_paragraphs).todense()
-tf_idf_dff = pd.DataFrame(tf_idff)
 
-pca = PCA(n_components=18) # 주성분을 몇개로 할지 결정
-principalComponents = pca.fit_transform(tf_idf_dff)
+# svd로 s값 구해서 분산정도 구하고 pca 파라미터 구하기
+#u, s, vt = svd(tf_idf)
+#s = np.diag(s)
+#s_list = []
+#for i in range(0, 1000):
+#    s_list.append(s[i][i]/np.trace(s))
+#
+#for i in range(1, 1000):
+#    print(1-reduce(lambda a, b: a + b, s_list[:i]))
+
+pca = PCA(n_components=30) # 주성분을 몇개로 할지 결정
+principalComponents = pca.fit_transform(tf_idf_df)
 principalDf = pd.DataFrame(data=principalComponents)
+pca_df = pd.DataFrame(data=principalComponents, index=df.index,
+                      columns=[f"pca{num+1}" for num in range(df.shape[1])])
+
+result = pd.DataFrame({'설명가능한 분산 비율(고윳값)':pca.explained_variance_,
+             '기여율':pca.explained_variance_ratio_},
+            index=np.array([f"pca{num+1}" for num in range(df.shape[1])]))
+result['누적기여율'] = result['기여율'].cumsum()
+print(result)
 
 eps = [0.05, 0.03, 0.09, 0.05, 0.03, 0.09, 0.05, 0.03, 0.09]
 min_samples = [2, 2, 2, 4, 4, 4, 7, 7, 7]
-res = clustering(dff, principalDf, principalComponents, eps, min_samples)
+res = clustering(df, principalDf, principalComponents, eps, min_samples)
 
+print(res[0])
+print(type(res[0]))
+
+"""
 for i, r in enumerate(res):
     if set(r) == None:
         continue
@@ -273,6 +300,7 @@ for i, r in enumerate(res):
                 print()
 
     print("-----------------\n")
+"""
 """
 
         print(df.head())
