@@ -1,6 +1,5 @@
 import requests
 import bs4
-from slugify import slugify
 import os
 
 

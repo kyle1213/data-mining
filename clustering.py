@@ -14,35 +14,9 @@ df = pd.read_csv('df.csv', index_col=0)
 print(df.head())
 print("df.shape : ", df.shape)
 
-tf_idf_df = pd.read_csv('mindf001_tf_idf_df.csv', index_col=0)
+tf_idf_df = pd.read_csv('mindf0001_tf_idf_df.csv', index_col=0)
 print(tf_idf_df.head())
 print("tf_idf_df.shape : ", tf_idf_df.shape)
-
-pca = PCA().fit(tf_idf_df)
-
-plt.rcParams["figure.figsize"] = (12,6)
-
-fig, ax = plt.subplots()
-xi = np.arange(1, tf_idf_df.shape[1]+1, step=1)
-y = np.cumsum(pca.explained_variance_ratio_)
-
-plt.ylim(0.0,1.1)
-plt.plot(xi, y, marker='o', linestyle='--', color='b')
-
-plt.xlabel('Number of Components')
-plt.xticks(np.arange(0, tf_idf_df.shape[1]+1, step=1)) #change from 0-based array index to 1-based human-readable label
-plt.ylabel('Cumulative variance (%)')
-plt.title('The number of components needed to explain variance')
-
-plt.axhline(y=0.80, color='r', linestyle='-')
-plt.axhline(y=0.5, color='r', linestyle='-')
-plt.axhline(y=0.1, color='r', linestyle='-')
-plt.text(0.5, 0.81, '80% cut-off threshold', color='red', fontsize=8)
-plt.text(0.5, 0.51, '50% cut-off threshold', color='red', fontsize=8)
-plt.text(0.5, 0.11, '10% cut-off threshold', color='red', fontsize=8)
-
-ax.grid(axis='x')
-plt.show()
 
 
 def clustering(df_, tf_idf_df_, tf_idf_, eps_, min_samples_):
@@ -103,14 +77,8 @@ def clustering(df_, tf_idf_df_, tf_idf_, eps_, min_samples_):
     plt.show()
 
     return result, df_, average_score
-
-n_components = float(input('enter n_components ratio: '))
-
-pca = PCA(n_components=n_components)
-principalComponents = pca.fit_transform(tf_idf_df)
-principalDf = pd.DataFrame(data=principalComponents)
-print("principalDf.shape : ", principalDf.shape)
-
+principalDf = tf_idf_df
+principalComponents = tf_idf_df.to_numpy()
 #eps choose
 n_neighbors = 2
 neighbors = NearestNeighbors(n_neighbors=n_neighbors)
@@ -134,10 +102,39 @@ print("average_score: ", avg)
 print(res[0])
 print(type(res[0]))
 for cluster_num in set(res[0]):
+    if cluster_num == 4:
+        break
     if cluster_num == -1 or cluster_num == 0:
         continue
     print("cluster num : {}".format(cluster_num))
-    temp_df = df[df['cluster' + 'of' + str(eps[0]) + 'and' + str(min_samples[0])] == cluster_num] # cluster num 별로 조회
+    temp_df = df[df['cluster' + 'of' + str(eps[0]) + 'and' + str(min_samples[0])] == cluster_num]  # cluster num 별로 조회
     for title in temp_df['title']:
-        print(title) # 제목으로 살펴보자
+        print(title)  # 제목으로 살펴보자
         print()
+
+
+"""
+for i, r in enumerate(res):
+    if set(r) == None:
+        continue
+    else:
+        for cluster_num in set(r):
+            if cluster_num == -1 or cluster_num == 0:
+                continue
+        # -1,0은 노이즈 판별이 났거나 클러스터링이 안된 경우
+            print("cluster num : {}".format(cluster_num))
+            temp_df = dff[dff['cluster' + 'of' + str(eps[i]) + 'and' + str(min_samples[i])] == cluster_num] # cluster num 별로 조회
+            for title in temp_df['title']:
+                print(title) # 제목으로 살펴보자
+                print()
+
+    print("-----------------\n")
+"""
+"""
+
+        print(df.head())
+        print("num of clusters: ", len(set(clusters.labels_)))
+        print("average_score: " + 'of' + str(e) + 'and' + str(s) + ": ", average_score)
+        print("silhouette score: " + 'of' + str(e) + 'and' + str(s) + ": ", silhouette_s)
+        print(df.groupby('cluster' + 'of' + str(e) + 'and' + str(s))['silhouette_coeff' + 'of' + str(e) + 'and' + str(s)].mean())
+        print("eps, min_samples: " + 'of' + str(e) + 'and' + str(s) + ": ", e, s)"""

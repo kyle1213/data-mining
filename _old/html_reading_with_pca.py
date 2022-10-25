@@ -25,7 +25,7 @@ import collections
 #nltk.download('punkt')
 #nltk.download('averaged_perceptron_tagger')
 
-CAT_PATTERN = r'([a-z_\s]+)/.*'
+CAT_PATTERN = r'([a-z]+)/.*'
 DOC_PATTERN = r'(?!\.)[a-z_\s]+/[0-9]+\.html'
 TAGS = []
 title_TAGS = ['h1']
@@ -269,7 +269,7 @@ df = pd.DataFrame(papers_list, columns={'title', 'abstract'})
 tf_idf = sklearn_tfidf_vectorize(abstract_paragraphs)
 tf_idf_df = pd.DataFrame(tf_idf.todense())
 
-pca = PCA(n_components=2048) # 주성분을 몇개로 할지 결정
+pca = PCA(n_components=3) # 주성분을 몇개로 할지 결정
 principalComponents = pca.fit_transform(tf_idf_df)
 principalDf = pd.DataFrame(data=principalComponents)
 

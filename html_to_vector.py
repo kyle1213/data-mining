@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 #nltk.download('averaged_perceptron_tagger')
 #nltk.download('omw-1.4')
 
-CAT_PATTERN = r'([a-z_\s]+)/.*'
+CAT_PATTERN = r'([a-su-z]+)/.*'
 DOC_PATTERN = r'(?!\.)[a-z_\s]+/[0-9]+\.html'
 TAGS = []
 title_TAGS = ['h1']
@@ -154,6 +154,36 @@ def sklearn_tfidf_vectorize(corpus):
     return res
 
 
+def mindf005_sklearn_tfidf_vectorize(corpus):
+    my_stop_words = text.ENGLISH_STOP_WORDS.union(['abstract', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+                                                   'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                                                   'w', 'x', 'y', 'z', ''])
+    tfidf = TfidfVectorizer(token_pattern='[a-zA-Z]*', stop_words=my_stop_words, min_df=0.05, sublinear_tf=True, max_df=0.85)
+    res = tfidf.fit_transform(corpus)
+    print(tfidf.get_feature_names()[:100])
+    return res
+
+
+def mindf001_sklearn_tfidf_vectorize(corpus):
+    my_stop_words = text.ENGLISH_STOP_WORDS.union(['abstract', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+                                                   'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                                                   'w', 'x', 'y', 'z', ''])
+    tfidf = TfidfVectorizer(token_pattern='[a-zA-Z]*', stop_words=my_stop_words, min_df=0.01, sublinear_tf=True, max_df=0.85)
+    res = tfidf.fit_transform(corpus)
+    print(tfidf.get_feature_names()[:100])
+    return res
+
+
+def mindf0001_sklearn_tfidf_vectorize(corpus):
+    my_stop_words = text.ENGLISH_STOP_WORDS.union(['abstract', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+                                                   'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                                                   'w', 'x', 'y', 'z', ''])
+    tfidf = TfidfVectorizer(token_pattern='[a-zA-Z]*', stop_words=my_stop_words, min_df=0.001, sublinear_tf=True, max_df=0.85)
+    res = tfidf.fit_transform(corpus)
+    print(tfidf.get_feature_names()[:100])
+    return res
+
+
 title_corpus = HTMLCorpusReader('', CAT_PATTERN, DOC_PATTERN, tags=title_TAGS)
 title_fileids = title_corpus.fileids()
 title_documents = title_corpus.docs(categories=title_corpus.categories())
@@ -250,47 +280,87 @@ tf_idf_df = pd.DataFrame(tf_idf)
 print(tf_idf_df.head())
 print("tf_idf_df.shape : ", tf_idf_df.shape)
 
-#title_tf_idf_df.to_csv('title_tf_idf_df.csv')
-#df.to_csv('df.csv')
-#tf_idf_df.to_csv('tf_idf_df.csv')
-#lemma_tf_idf_df.to_csv('lemma_tf_idf_df.csv')
-#print("csv saving done")
+mindf005_sparse_tf_idf = mindf005_sklearn_tfidf_vectorize(abstract_paragraphs)
+print(mindf005_sparse_tf_idf)
+print("type of mindf005_sparse_tf_idf : ", type(mindf005_sparse_tf_idf))
 
-#pca = PCA().fit(tf_idf_df)
-#
-#plt.rcParams["figure.figsize"] = (12,6)
-#
-#fig, ax = plt.subplots()
-#xi = np.arange(1, 13685, step=1)
-#y = np.cumsum(pca.explained_variance_ratio_)
-#
-#plt.ylim(0.0,1.1)
-#plt.plot(xi, y, marker='o', linestyle='--', color='b')
-#
-#plt.xlabel('Number of Components')
-#plt.xticks(np.arange(0, 13685, step=1)) #change from 0-based array index to 1-based human-readable label
-#plt.ylabel('Cumulative variance (%)')
-#plt.title('The number of components needed to explain variance')
-#
-#plt.axhline(y=0.95, color='r', linestyle='-')
-#plt.text(0.5, 0.85, '95% cut-off threshold', color = 'red', fontsize=16)
-#
-#ax.grid(axis='x')
-#plt.show()
+mindf005_tf_idf = mindf005_sparse_tf_idf.todense()
+print(mindf005_tf_idf)
+print("type of mindf005_tf_idf : ", type(mindf005_tf_idf))
+
+mindf005_tf_idf_df = pd.DataFrame(mindf005_tf_idf)
+print(mindf005_tf_idf_df.head())
+print("mindf005_tf_idf_df.shape : ", mindf005_tf_idf_df.shape)
+
+mindf001_sparse_tf_idf = mindf001_sklearn_tfidf_vectorize(abstract_paragraphs)
+print(mindf001_sparse_tf_idf)
+print("type of mindf001_sparse_tf_idf : ", type(mindf001_sparse_tf_idf))
+
+mindf001_tf_idf = mindf001_sparse_tf_idf.todense()
+print(mindf001_tf_idf)
+print("type of mindf001_tf_idf : ", type(mindf001_tf_idf))
+
+mindf001_tf_idf_df = pd.DataFrame(mindf001_tf_idf)
+print(mindf001_tf_idf_df.head())
+print("mindf001_tf_idf_df.shape : ", mindf001_tf_idf_df.shape)
+
+mindf0001_sparse_tf_idf = mindf0001_sklearn_tfidf_vectorize(abstract_paragraphs)
+print(mindf0001_sparse_tf_idf)
+print("type of mindf0001_sparse_tf_idf : ", type(mindf0001_sparse_tf_idf))
+
+mindf0001_tf_idf = mindf0001_sparse_tf_idf.todense()
+print(mindf0001_tf_idf)
+print("type of mindf0001_tf_idf : ", type(mindf0001_tf_idf))
+
+mindf0001_tf_idf_df = pd.DataFrame(mindf0001_tf_idf)
+print(mindf0001_tf_idf_df.head())
+print("mindf0001_tf_idf_df.shape : ", mindf0001_tf_idf_df.shape)
+
+mindf005_lemma_sparse_tf_idf = mindf005_sklearn_tfidf_vectorize(lemma_abstract_paragraphs)
+print(mindf005_lemma_sparse_tf_idf)
+print("type of mindf005_lemma_sparse_tf_idf : ", type(mindf005_lemma_sparse_tf_idf))
+
+mindf005_lemma_tf_idf = mindf005_lemma_sparse_tf_idf.todense()
+print(mindf005_lemma_tf_idf)
+print("type of mindf005_lemma_tf_idf : ", type(mindf005_lemma_tf_idf))
+
+mindf005_lemma_tf_idf_df = pd.DataFrame(mindf005_lemma_tf_idf)
+print(mindf005_lemma_tf_idf_df.head())
+print("mindf005_lemma_tf_idf_df.shape : ", mindf005_lemma_tf_idf_df.shape)
+
+mindf001_lemma_sparse_tf_idf = mindf001_sklearn_tfidf_vectorize(lemma_abstract_paragraphs)
+print(mindf001_lemma_sparse_tf_idf)
+print("type of mindf001_lemma_sparse_tf_idf : ", type(mindf001_lemma_sparse_tf_idf))
+
+mindf001_lemma_tf_idf = mindf001_lemma_sparse_tf_idf.todense()
+print(mindf001_lemma_tf_idf)
+print("type of mindf001_lemma_tf_idf : ", type(mindf001_lemma_tf_idf))
+
+mindf001_lemma_tf_idf_df = pd.DataFrame(mindf001_lemma_tf_idf)
+print(mindf001_lemma_tf_idf_df.head())
+print("mindf001_lemma_tf_idf_df.shape : ", mindf001_lemma_tf_idf_df.shape)
+
+mindf0001_lemma_sparse_tf_idf = mindf0001_sklearn_tfidf_vectorize(lemma_abstract_paragraphs)
+print(mindf0001_lemma_sparse_tf_idf)
+print("type of mindf0001_lemma_sparse_tf_idf : ", type(mindf0001_lemma_sparse_tf_idf))
+
+mindf0001_lemma_tf_idf = mindf0001_lemma_sparse_tf_idf.todense()
+print(mindf0001_lemma_tf_idf)
+print("type of mindf0001_lemma_tf_idf : ", type(mindf0001_lemma_tf_idf))
+
+mindf0001_lemma_tf_idf_df = pd.DataFrame(mindf0001_lemma_tf_idf)
+print(mindf0001_lemma_tf_idf_df.head())
+print("mindf0001_lemma_tf_idf_df.shape : ", mindf0001_lemma_tf_idf_df.shape)
 
 
-
-
-
-#u, s, vt = svd(tf_idf)
-#print("svd done")
-#s = np.square(s)
-#s = np.diag(s)
-#s_list = []
-#trace = np.trace(s)
-#for i in range(0, 3450):
-#    s_list.append(s[i][i]/trace)
-#print("making list done")
-#
-#for i in range(1, 3450):
-#    print(reduce(lambda a, b: a + b, s_list[:i])) #0.8
+title_tf_idf_df.to_csv('title_tf_idf_df.csv')
+df.to_csv('df.csv')
+tf_idf_df.to_csv('tf_idf_df.csv')
+mindf005_tf_idf_df.to_csv('mindf005_tf_idf_df.csv')
+mindf001_tf_idf_df.to_csv('mindf001_tf_idf_df.csv')
+mindf0001_tf_idf_df.to_csv('mindf0001_tf_idf_df.csv')
+lemma_tf_idf_df.to_csv('lemma_tf_idf_df.csv')
+mindf005_lemma_tf_idf_df.to_csv('mindf005_lemma_tf_idf_df.csv')
+mindf001_lemma_tf_idf_df.to_csv('mindf001_lemma_tf_idf_df.csv')
+mindf0001_lemma_tf_idf_df.to_csv('mindf0001_lemma_tf_idf_df.csv')
+print("csv saving done")

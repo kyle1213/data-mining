@@ -8,13 +8,14 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.decomposition import PCA
 from functools import reduce
 from numpy.linalg import svd
+from scipy.sparse.linalg import svds
 
 
 df = pd.read_csv('df.csv', index_col=0)
 print(df.head())
 print("df.shape : ", df.shape)
 
-tf_idf_df = pd.read_csv('mindf001_tf_idf_df.csv', index_col=0)
+tf_idf_df = pd.read_csv('mindf005_tf_idf_df.csv', index_col=0)
 print(tf_idf_df.head())
 print("tf_idf_df.shape : ", tf_idf_df.shape)
 
@@ -34,9 +35,13 @@ plt.xticks(np.arange(0, tf_idf_df.shape[1]+1, step=1)) #change from 0-based arra
 plt.ylabel('Cumulative variance (%)')
 plt.title('The number of components needed to explain variance')
 
+plt.axhline(y=0.95, color='r', linestyle='-')
+plt.axhline(y=0.90, color='r', linestyle='-')
 plt.axhline(y=0.80, color='r', linestyle='-')
 plt.axhline(y=0.5, color='r', linestyle='-')
 plt.axhline(y=0.1, color='r', linestyle='-')
+plt.text(0.5, 0.96, '95% cut-off threshold', color='red', fontsize=8)
+plt.text(0.5, 0.91, '90% cut-off threshold', color='red', fontsize=8)
 plt.text(0.5, 0.81, '80% cut-off threshold', color='red', fontsize=8)
 plt.text(0.5, 0.51, '50% cut-off threshold', color='red', fontsize=8)
 plt.text(0.5, 0.11, '10% cut-off threshold', color='red', fontsize=8)
@@ -104,11 +109,11 @@ def clustering(df_, tf_idf_df_, tf_idf_, eps_, min_samples_):
 
     return result, df_, average_score
 
-n_components = float(input('enter n_components ratio: '))
 
-pca = PCA(n_components=n_components)
-principalComponents = pca.fit_transform(tf_idf_df)
-principalDf = pd.DataFrame(data=principalComponents)
+n_components = int(input('enter n_components : '))
+U_tr, Sigma_tr, Vt_tr = svds(tf_idf_df, k=n_components)
+principalComponents = U_tr
+principalDf = pd.DataFrame(data=U_tr)
 print("principalDf.shape : ", principalDf.shape)
 
 #eps choose
@@ -134,10 +139,11 @@ print("average_score: ", avg)
 print(res[0])
 print(type(res[0]))
 for cluster_num in set(res[0]):
-    if cluster_num == -1 or cluster_num == 0:
-        continue
-    print("cluster num : {}".format(cluster_num))
-    temp_df = df[df['cluster' + 'of' + str(eps[0]) + 'and' + str(min_samples[0])] == cluster_num] # cluster num 별로 조회
-    for title in temp_df['title']:
-        print(title) # 제목으로 살펴보자
-        print()
+     if cluster_num == -1 or cluster_num == 0:
+         continue
+     print("cluster num : {}".format(cluster_num))
+     temp_df = df[df['cluster' + 'of' + str(eps[0]) + 'and' + str(min_samples[0])] == cluster_num] # cluster num 별로 조회
+     for title in temp_df['title']:
+         print(title) # 제목으로 살펴보자
+         print()
+
