@@ -30,7 +30,7 @@ def clustering(df_, tf_idf_df_, tf_idf_, eps_):
     average_score.append(temp/len(set(clusters.labels_)))
     return result, df_, average_score
 
-
+##
 pca = PCA(n_components=0.8)
 principalComponents = pca.fit_transform(tf_idf_df)
 principalDf = pd.DataFrame(data=principalComponents)
