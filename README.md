@@ -5,4 +5,4 @@
 4. model.py to open flask server with cluster model
 
 ------
-cluster.py(pca) do cluster experiment and visualization with various parameters
+cluster.py does clustering and visualization with various parameters
